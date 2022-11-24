@@ -1,14 +1,18 @@
 use std::env;
 
-use serenity::{async_trait, model::prelude::Message};
+use serenity::{async_trait, model::{prelude::Message, error}};
 use serenity::model::application::command::Command;
 use serenity::model::application::interaction::{Interaction, InteractionResponseType};
 use serenity::model::gateway::Ready;
 use serenity::prelude::*;
 
+use std::io::{Write, Result};
+use log::{error, warn, info, debug, trace, LevelFilter};
+use env_logger;
 use dotenv::dotenv;
 
 mod commands;
+mod local_env;
 
 struct Handler;
 
@@ -31,7 +35,7 @@ impl EventHandler for Handler {
                 })
                 .await
             {
-                println!("Cannot respond to slash command: {}", why);
+                error!("Error responding to command: {:?}", why);
             }
         }
     }
@@ -39,14 +43,13 @@ impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
         if msg.content == "!boulot" {
             if let Err(why) = msg.channel_id.say(&ctx.http, "Boulot pierre").await {
-                println!("Error sending message: {:?}", why);
+                error!("Error sending message: {:?}", why);
             }
         }
     }
 
     async fn ready(&self, ctx: Context, ready: Ready) {
-        println!("{} is connected!", ready.user.name);
-
+        info!("{} is connected!", ready.user.name);
 
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands
@@ -54,7 +57,7 @@ impl EventHandler for Handler {
         })
         .await;
         if commands.is_err() {
-            println!("Error registering slash commands: {:?}", commands);
+            error!("Error registering slash commands: {:?}", commands);
         }
 
         let res = Command::create_global_application_command(&ctx.http, |command| {
@@ -63,16 +66,23 @@ impl EventHandler for Handler {
         .await;
 
         match res {
-            Ok(_) => println!("Registered commands"),
-            Err(why) => println!("Error registering commands: {:?}", why),
+            Ok(_) => info!("Successfully registered slash commands"),
+            Err(why) => error!("Error registering slash commands: {:?}", why),
         }
     }
 }
 
 #[tokio::main]
 async fn main() {
-
     dotenv().ok();
+    env_logger::Builder::new()
+        .format(|buf, record| writeln!(buf, "[{}] - {}", record.level(), record.args()))
+        .filter(None, LevelFilter::Info)
+        .target(env_logger::Target::Stdout)
+        .write_style(env_logger::fmt::WriteStyle::Always)
+        .init();
+
+    local_env::check_vars();
 
     let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let intents = GatewayIntents::GUILD_MESSAGES
@@ -82,7 +92,7 @@ async fn main() {
     let mut client =
         Client::builder(&token, intents).event_handler(Handler).await.expect("Err creating client");
 
-    if let Err(why) = client.start_shards(4).await {
-        println!("Client error: {:?}", why);
+    if let Err(why) = client.start_shards(env::var("SHARD_NB").unwrap().parse().unwrap()).await {
+        error!("Client error: {:?}", why);
     }
 }
