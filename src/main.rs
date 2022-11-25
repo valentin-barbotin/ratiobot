@@ -25,6 +25,8 @@ impl EventHandler for Handler {
 
             let content = match command.data.name.as_str() {
                 "ratio" => commands::ratio::run(&command.data),
+                "rer" => commands::rer::run(&command.data).await,
+                "rers" => commands::rers::run(&command.data).await,
                 _ => "Not implemented".to_string(),
             };
 
@@ -54,6 +56,8 @@ impl EventHandler for Handler {
         let commands = Command::set_global_application_commands(&ctx.http, |commands| {
             commands
                 .create_application_command(|command| commands::ratio::register(command))
+                .create_application_command(|command| commands::rer::register(command))
+                .create_application_command(|command| commands::rers::register(command))
         })
         .await;
         if commands.is_err() {
@@ -75,9 +79,22 @@ impl EventHandler for Handler {
 #[tokio::main]
 async fn main() {
     dotenv().ok();
+
+    let level: LevelFilter = match env::var("RUST_LOG") {
+        Ok(val) => match val.as_str() {
+            "error" => LevelFilter::Error,
+            "warn" => LevelFilter::Warn,
+            "info" => LevelFilter::Info,
+            "debug" => LevelFilter::Debug,
+            "trace" => LevelFilter::Trace,
+            _ => LevelFilter::Info,
+        },
+        Err(_) => LevelFilter::Info,
+    };
+
     env_logger::Builder::new()
         .format(|buf, record| writeln!(buf, "[{}] - {}", record.level(), record.args()))
-        .filter(None, LevelFilter::Info)
+        .filter(None, level)
         .target(env_logger::Target::Stdout)
         .write_style(env_logger::fmt::WriteStyle::Always)
         .init();
