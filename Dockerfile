@@ -20,6 +20,8 @@ FROM debian:bullseye-slim as final
 
 WORKDIR /app
 
+RUN apt-get update -y && apt install ca-certificates -y && apt-get clean
+
 COPY --from=builder /ratiobot/target/release/ratiobot .
 
 RUN useradd -M -s /bin/bash -u 1001 svc
