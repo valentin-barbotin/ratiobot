@@ -836,6 +836,7 @@ dependencies = [
  "serde_json",
  "serenity",
  "tokio",
+ "url_params_serializer",
 ]
 
 [[package]]
@@ -1436,6 +1437,15 @@ dependencies = [
  "form_urlencoded",
  "idna",
  "percent-encoding",
+ "serde",
+]
+
+[[package]]
+name = "url_params_serializer"
+version = "0.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "64a3766d85f69337278aa6737df4e75a16e3e8cb10b11200a89680ab7c2cac75"
+dependencies = [
  "serde",
 ]
 

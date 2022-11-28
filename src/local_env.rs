@@ -9,11 +9,16 @@ fn var_not_defined(var: &str) -> String {
 }
 
 pub fn check_vars() {
+    lazy_static::initialize(&TWITTER_TOKEN);
     lazy_static::initialize(&DISCORD_TOKEN);
     lazy_static::initialize(&SHARD_NB);
 }
 
 lazy_static! {
+    pub static ref TWITTER_TOKEN: String = env::var("TWITTER_TOKEN").unwrap_or_else(|_e| {
+        var_not_defined("TWITTER_TOKEN")
+    });
+
     // Discord
     pub static ref DISCORD_TOKEN: String = env::var("DISCORD_TOKEN").unwrap_or_else(|_e| {
         var_not_defined("DISCORD_TOKEN")
