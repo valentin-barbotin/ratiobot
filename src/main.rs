@@ -14,6 +14,8 @@ use dotenv::dotenv;
 mod commands;
 mod local_env;
 
+use local_env::*;
+
 struct Handler;
 
 #[async_trait]
@@ -101,15 +103,14 @@ async fn main() {
 
     local_env::check_vars();
 
-    let token = env::var("DISCORD_TOKEN").expect("Expected a token in the environment");
     let intents = GatewayIntents::GUILD_MESSAGES
         | GatewayIntents::DIRECT_MESSAGES
         | GatewayIntents::MESSAGE_CONTENT;
 
     let mut client =
-        Client::builder(&token, intents).event_handler(Handler).await.expect("Err creating client");
+        Client::builder(DISCORD_TOKEN.as_str(), intents).event_handler(Handler).await.expect("Err creating client");
 
-    if let Err(why) = client.start_shards(env::var("SHARD_NB").unwrap().parse().unwrap()).await {
+    if let Err(why) = client.start_shards(*SHARD_NB).await {
         error!("Client error: {:?}", why);
     }
 }
