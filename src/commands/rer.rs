@@ -6,8 +6,9 @@ use serde_json;
 use url_params_serializer::to_url_params;
 
 use hyper_tls::HttpsConnector;
-
 use hyper::{Client, Uri, Request};
+
+use chrono::{DateTime, Utc};
 
 use crate::local_env::TWITTER_TOKEN;
 
@@ -27,6 +28,7 @@ struct Tweet {
     edit_history_tweet_ids: Vec<String>,
     id: String,
     text: String,
+    created_at: String,
 }
 
 #[derive(Deserialize)]
@@ -39,6 +41,8 @@ struct Params {
     query: String,
     max_results: u8,
     sort_order: String,
+    #[serde(rename = "tweet.fields")]
+    tweet_fields: String,
 }
 
 #[derive(PartialEq, Debug)]
@@ -48,8 +52,8 @@ enum RERState {
     Default,
 }
 
-static OK_LIST: [&str; 3] = ["Fin de stationnement", "Le train repart", "le trafic est rétabli"];
-static WARNING_LIST: [&str; 5] = ["Le trafic est perturbé", "stationne en raison", "le trafic est rétabli", "retard", "gêne de circulation"];
+static OK_LIST: [&str; 4] = ["Fin de stationnement", "Le train repart", "le trafic est rétabli", "est terminé"];
+static WARNING_LIST: [&str; 5] = ["est perturbé", "stationne en raison", "retard", "gêne de circulation", "incident de signalisation"];
 
 pub fn register(
     command: &mut builder::CreateApplicationCommand,
@@ -114,7 +118,8 @@ pub async fn run(data: &CommandData) -> String {
     let params = Params {
         query: format!("from%3A{}", line),
         max_results: 30,
-        sort_order: "relevancy".to_string(),
+        sort_order: "recency".to_string(),
+        tweet_fields: "created_at".to_string(),
     };
     let url = to_url_params(params);
     let params = params_vec_to_string!(url);
@@ -137,8 +142,11 @@ pub async fn run(data: &CommandData) -> String {
             match res {
                 Ok(res) => {
                     let bytes = hyper::body::to_bytes(res.into_body()).await.unwrap();
+
+                    let body = String::from_utf8(bytes.to_vec()).unwrap();
+                    warn!("body: {}", body);
                     
-                    let tweets: Tweets = match serde_json::from_slice(&bytes.to_vec()) {
+                    let mut tweets: Tweets = match serde_json::from_slice(&bytes.to_vec()) {
                         Ok(tweets) => tweets,
                         Err(e) => {
                             warn!("error: {}", e);
@@ -146,16 +154,21 @@ pub async fn run(data: &CommandData) -> String {
                         }
                     };
 
+                    tweets.data.reverse();
 
                     let mut current_state = RERState::Default;
                     let mut msg: Option<String> = None;
-                    // relevancy (oldest first)
+                    let mut date: Option<DateTime<Utc>> = None;
+                    // recency (oldest first)
                     for tweet in tweets.data {
                         let state = search_indicator(&tweet.text);
+                        println!("state: {:?}, {}", state, tweet.text);
+
                         if state != RERState::Default {
                             debug!("state: {:?}, {}", state, tweet.text);
                             current_state = state;
                             msg = Some(tweet.text);
+                            date = Some(DateTime::parse_from_rfc3339(&tweet.created_at).unwrap().with_timezone(&Utc));
                         }
                     }
 
@@ -166,7 +179,7 @@ pub async fn run(data: &CommandData) -> String {
                     };
                     
                     let res = match msg {
-                        Some(m) => format!("Ligne {}: {}\n\nTweet:\n{}", line, final_state, m),
+                        Some(m) => format!("Ligne {}: {}\n\nTweet:\n{}\n\n{}", line, final_state, m, date.unwrap().format("%d/%m/%Y %H:%M:%S").to_string()),
                         None => format!("Ligne {}: {}", line, final_state),
                     };
 
@@ -192,6 +205,8 @@ pub async fn run(data: &CommandData) -> String {
 #[cfg(test)]
 
 mod tests {
+    use chrono::TimeZone;
+
     use super::*;
 
     #[test]
@@ -203,7 +218,8 @@ mod tests {
         let params = Params {
             query: format!("from%3A{}", line),
             max_results: 30,
-            sort_order: "relevancy".to_string(),
+            sort_order: "recenvy".to_string(),
+            tweet_fields: "created_at".to_string(),
         };
         let url: Vec<(String, String)> = to_url_params(params);
         // slice to string
@@ -211,5 +227,14 @@ mod tests {
 
         // println!("{}", url);
         assert_eq!(queryparams, "query=from:RER_A&max_results=10");
+    }
+
+    #[test]
+    fn parse_created_at() {
+        let created_at = "2021-03-01T09:00:00.000Z";
+        let dt = DateTime::parse_from_rfc3339(created_at).unwrap();
+        let date = Utc.with_ymd_and_hms(2021, 3, 1, 9, 0, 0).unwrap();
+        assert_eq!(date, dt);     
+        // "2021-03-01 09:00:00"
     }
 }
