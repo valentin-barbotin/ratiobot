@@ -16,11 +16,12 @@ COPY ./src ./src
 RUN rm ./target/release/deps/ratiobot*
 RUN cargo build --release
 
-FROM debian:bullseye-slim as final
+# FROM debian:bullseye-slim as final
+FROM alpine:3.17 as final
 
 WORKDIR /app
 
-RUN apt-get update -y && apt install ca-certificates -y && apt-get clean
+RUN apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
 
 COPY --from=builder /ratiobot/target/release/ratiobot .
 
