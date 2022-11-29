@@ -63,8 +63,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=${{ secrets.REGISTRY_USERNAME }}/${{ github.event.repository.name }}:buildcache
-          cache-to: type=registry,ref=${{ secrets.REGISTRY_USERNAME }}/${{ github.event.repository.name }}:buildcache,mode=max
+          cache-from: type=registry,ref=${{ secrets.REGISTRY_USERNAME }}/${{ github.event.repository.name }}:latest
+          cache-to: type=registry,ref=${{ secrets.REGISTRY_USERNAME }}/${{ github.event.repository.name }}:latest,mode=max
 
       - name: Release Drafter
         uses: release-drafter/release-drafter@v5.20.0
