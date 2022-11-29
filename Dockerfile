@@ -25,7 +25,7 @@ RUN apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
 
 COPY --from=builder /ratiobot/target/release/ratiobot .
 
-RUN useradd -M -s /bin/bash -u 1001 svc
+RUN adduser -H svc
 
 USER svc
 
