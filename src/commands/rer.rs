@@ -8,7 +8,7 @@ use url_params_serializer::to_url_params;
 use hyper_tls::HttpsConnector;
 use hyper::{Client, Uri, Request};
 
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Utc, Datelike};
 
 use crate::local_env::TWITTER_TOKEN;
 
@@ -159,8 +159,16 @@ pub async fn run(data: &CommandData) -> String {
                     let mut current_state = RERState::Default;
                     let mut msg: Option<String> = None;
                     let mut date: Option<DateTime<Utc>> = None;
+                    let date_now = Utc::now();
+
                     // recency (oldest first)
                     for tweet in tweets.data {
+                        //check date:
+                        let tweet_date = DateTime::parse_from_rfc3339(&tweet.created_at).unwrap().with_timezone(&Utc);
+                        if tweet_date.day() != date_now.day() {
+                            continue;
+                        }
+
                         let state = search_indicator(&tweet.text);
                         println!("state: {:?}, {}", state, tweet.text);
 
@@ -168,7 +176,7 @@ pub async fn run(data: &CommandData) -> String {
                             debug!("state: {:?}, {}", state, tweet.text);
                             current_state = state;
                             msg = Some(tweet.text);
-                            date = Some(DateTime::parse_from_rfc3339(&tweet.created_at).unwrap().with_timezone(&Utc));
+                            date = Some(tweet_date);
                         }
                     }
 
