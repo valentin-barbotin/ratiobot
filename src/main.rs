@@ -28,7 +28,6 @@ impl EventHandler for Handler {
             let content = match command.data.name.as_str() {
                 "ratio" => commands::ratio::run(&command.data),
                 "rer" => commands::rer::run(&command.data).await,
-                "rers" => commands::rers::run(&command.data).await,
                 _ => "Not implemented".to_string(),
             };
 
@@ -59,7 +58,6 @@ impl EventHandler for Handler {
             commands
                 .create_application_command(|command| commands::ratio::register(command))
                 .create_application_command(|command| commands::rer::register(command))
-                .create_application_command(|command| commands::rers::register(command))
         })
         .await;
         if commands.is_err() {
