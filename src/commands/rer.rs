@@ -52,8 +52,27 @@ enum RERState {
     Default,
 }
 
-static OK_LIST: [&str; 4] = ["Fin de stationnement", "Le train repart", "le trafic est rétabli", "est terminé"];
-static WARNING_LIST: [&str; 5] = ["est perturbé", "stationne en raison", "retard", "gêne de circulation", "incident de signalisation"];
+static OK_LIST: [&str; 5] = [
+    "Fin de stationnement",
+    "Le train repart",
+    "le trafic est rétabli",
+    "est terminé",
+    "✅"
+    ];
+
+    static WARNING_LIST: [&str; 11] = [
+    "est perturbé",
+    "stationne en raison",
+    "retard",
+    "gêne de circulation",
+    "incident de signalisation",
+    "fermée",
+    "sécurité",
+    "acte de malveillance",
+    "sans voyageur",
+    "⚠️",
+    "⛔️"
+    ];
 
 pub fn register(
     command: &mut builder::CreateApplicationCommand,
