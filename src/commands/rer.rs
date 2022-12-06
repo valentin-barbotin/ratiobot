@@ -129,7 +129,7 @@ pub async fn run(data: &CommandData) -> String {
     // check if line is in array
     let lines = ["A", "B", "C", "D", "E"];
     if !lines.contains(&line) {
-        "Ligne non reconnue".to_string();
+        return "Ligne non reconnue".to_string();
     }
 
     let line = get_line(line);
